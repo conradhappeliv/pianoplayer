@@ -4,7 +4,7 @@
 mkdir tmp
 curl http://www.fourmilab.ch/webtools/midicsv/midicsv-1.1.tar.gz | tar xvz -C ./tmp
 cd ./tmp/midicsv-1.1
-make && make install
+make && cp midicsv /usr/bin
 cd ../..
 rm -Rf tmp
 
