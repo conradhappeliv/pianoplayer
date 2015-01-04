@@ -10,5 +10,4 @@ class EdiPort(BaseIOPort):
         self.port.close()
 
     def _send(self, message):
-        for byte in message.bytes():
-            self.port.write(byte)
+        self.port.write(message.bytes())
