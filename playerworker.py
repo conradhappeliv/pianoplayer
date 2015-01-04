@@ -4,7 +4,7 @@ import mido
 
 def play_file(filen, port, stopevent):
     # piano takes 2 seconds to warm up
-    port.write([0x90, 0xFF, 0x00])
+    port.send(mido.Message('note_on', note=60, velocity=0))
     time.sleep(2)
 
     midi_file = mido.MidiFile('files/'+filen)
