@@ -1,63 +1,50 @@
-import cherrypy
-import os
-import multiprocessing
-import playerworker
-from edi_port import EdiPort
-port = EdiPort()
+import zmq
+import settings
+import threading
+import queue
+import time
+import mido
 
+from translators import decode_command
 
-class PianoPlayer(object):
-    def __init__(self):
-        self.player = multiprocessing.Process()
-        self.stopevent = multiprocessing.Event()
+q = queue.Queue()
 
-    @cherrypy.expose
-    def index(self):
-        return file('static/index.html')
+def server():
+    zmq_context = zmq.Context()
+    zmq_socket = zmq_context.socket(zmq.REP)
+    zmq_socket.bind('tcp://127.0.0.1:'+str(settings.PORT))
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def getlist(self):
-        if not os.path.exists('files'):
-            os.mkdir('files')
-            return {}
-        else:
-            return os.listdir('files')
+    while True:
+        q.put(zmq_socket.recv())
+        zmq_socket.send_string('ack')  # pattern requires reply
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def start(self, filename='clairdelune.mid'):
-        if self.player.is_alive():
-            print "Already playing"
-            return 1
-        else:
-            self.player = multiprocessing.Process(target=playerworker.play_file, args=(filename, port, self.stopevent))
-            self.player.start()
-            print "Playing started"
-            return 0
+def player():
+    last_played_at = time.time()
+    port = settings.PORT_TYPE()
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def stop(self):
-        if self.player.is_alive():
-            self.stopevent.set()
-            self.player.join()
-            self.stopevent.clear()
-            print "Playing stopped"
-            return 0
-        else:
-            print "Not playing, can't stop"
-            return 1
+    while True:
+        cur = q.get()  # blocks until something in queue
+        decoded = decode_command(cur)
+        diff = last_played_at + decoded['timing']/1000 - time.time()
+        # TODO: add "wake-up" for piano
+        if diff > 0:
+            time.sleep(diff)
+        if decoded['command'] == settings.MAPPINGS.RESET:
+            msg = mido.Message('reset')
+        elif decoded['command'] == settings.MAPPINGS.NOTE_ON:
+            msg = mido.Message('note_on', note=decoded['data'][0], velocity=decoded['data'][1])
+        elif decoded['command'] == settings.MAPPINGS.NOTE_OFF:
+            msg = mido.Message('note_off', note=decoded['data'][0])
+        elif decoded['command'] == settings.MAPPINGS.SUS_ON:
+            msg = mido.Message('control')  # TODO
+        elif decoded['command'] == settings.MAPPINGS.SUS_OFF:
+            msg = mido.Message('control')  # TODO
+        port.send(msg)
+        last_played_at = time.time()
+
+def main():
+    threading.Thread(target=server).start()
+    threading.Thread(target=player).start()
 
 if __name__ == '__main__':
-    conf = {
-        '/': {
-            'tools.staticdir.root': os.path.dirname(os.path.realpath(__file__))
-        },
-        '/static': {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': './static'
-        }
-    }
-    cherrypy.server.socket_host = '0.0.0.0'
-    cherrypy.quickstart(PianoPlayer(), '/', conf)
+    main()
