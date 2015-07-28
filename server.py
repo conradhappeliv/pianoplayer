@@ -1,21 +1,33 @@
-import zmq
 import settings
 import threading
 import queue
 import time
 import mido
+import os
+import tornado.ioloop
+import tornado.web
+import tornado.websocket
 
 q = queue.Queue()
+connected = []
+
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render('index.html')
 
 
-def server():
-    zmq_context = zmq.Context()
-    zmq_socket = zmq_context.socket(zmq.REP)
-    zmq_socket.bind('tcp://0.0.0.0:'+str(settings.PORT))
+class WSHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        connected.append(self)
 
-    while True:
-        q.put((zmq_socket.recv(), time.time()))
-        zmq_socket.send_string('ack')  # pattern requires reply
+    def close(self, code=None, reason=None):
+        pass
+
+    def on_message(self, message):
+        message = message.split(',')
+        timing = int(message[0])
+        midi_cmd = mido.parse(bytearray([int(x) for x in message[1:]]))
+        q.put((midi_cmd, timing, time.time()))
 
 
 def player():
@@ -23,8 +35,7 @@ def player():
     port = settings.PORT_TYPE()
 
     while True:
-        cur, recv_time = q.get()  # blocks until something in queue
-        timing = int.from_bytes(cur[0:4], 'big')
+        message, timing, recv_time = q.get()  # blocks until something in queue
 
         while time.time() - recv_time < 5: pass # 5 second "buffer" time
 
@@ -37,14 +48,26 @@ def player():
         if diff > 0:  # timing between notes
             time.sleep(diff)
 
-        message = mido.parse(cur[4:])
-
         port.send(message)
         last_played_at = time.time()
 
+def server():
+    settings = {
+        'debug': True,
+        'static_path': os.path.dirname(os.path.realpath(__file__))+'/static',
+        'template_path': os.path.dirname(os.path.realpath(__file__))+'/static'
+    }
+    urls = [
+        (r'/', MainHandler),
+        (r'/ws', WSHandler)
+    ]
+    app = tornado.web.Application(urls, **settings)
+    app.listen(80)
+    tornado.ioloop.IOLoop.current().start()
+
 def main():
-    threading.Thread(target=server).start()
     threading.Thread(target=player).start()
+    server()
 
 if __name__ == '__main__':
     main()

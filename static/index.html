@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Play My Piano</title>
+</head>
+<body>
+<div id="main">
+    <h1>Play my piano.</h1>
+    <div>
+        <label for="inputSelector">Select your MIDI input:</label>
+        <select id="inputSelector" data-bind="options: midiInputs, optionsText: 'name', value: selectedInput"></select>
+    </div>
+
+    <div data-bind="visible: selectedInput">
+        <label for="inputTester">Make sure you see input from your MIDI device here when you play it:</label>
+        <input type="text" id="inputTester" readonly data-bind="value: testInput">
+    </div>
+</div>
+<script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+<script>
+    var ws;
+    var last_note = (new Date()).getTime();
+    var mainModel = {
+        midiInputs: ko.observableArray(),
+        previousInput: ko.observable(),
+        selectedInput: ko.observable(),
+        testInput: ko.observable()
+    };
+
+    $(function() {
+        ko.applyBindings(mainModel, document.getElementById('main'));
+
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess({}).then(onMIDISuccess, onMIDIFailure);
+        } else {
+            alert("No MIDI support in your browser.");
+        }
+
+        mainModel.selectedInput.subscribe(setUpInput);
+
+        ws = new WebSocket('ws://127.0.0.1/ws');
+        ws.onopen = function() { console.log('opened') };
+        ws.onclose = function() { console.log('closed') };
+    });
+
+// midi functions
+    function setUpInput(newval) {
+        if(mainModel.previousInput()) {
+            mainModel.previousInput().onmidimessage = null;
+        }
+
+        mainModel.selectedInput().onmidimessage = onMIDIMessage;
+        mainModel.previousInput(newval); // save the input so we can disconnect it if changed again
+    }
+
+    function onMIDIMessage(event) {
+        var data = event.data;
+        var timestamp = event.timeStamp;
+        var time_diff = timestamp - last_note;
+        console.log(last_note, timestamp, time_diff)
+        mainModel.testInput([data[0], data[1], data[2]]);
+        var newArray = [];
+        newArray[0] = time_diff;
+        for(var i = 0; i < data.length; i++) newArray[i+1] = data[i];
+        ws.send(newArray);
+        last_note = timestamp;
+    }
+
+    function onMIDISuccess(midi) {
+        var inputs = midi.inputs.values();
+        var inputs_arr = [];
+        for (var input = inputs.next(); input && !input.done; input = inputs.next()) {
+            inputs_arr.push(input.value);
+        }
+        console.log(inputs_arr);
+        mainModel.midiInputs(inputs_arr);
+    }
+
+    function onMIDIFailure(e) {
+        alert("Something went wrong...");
+        console.log(e);
+}
+</script>
+</body>
+</html>
