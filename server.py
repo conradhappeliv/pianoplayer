@@ -52,7 +52,7 @@ def player():
         last_played_at = time.time()
 
 def server():
-    settings = {
+    tornado_settings = {
         'debug': True,
         'static_path': os.path.dirname(os.path.realpath(__file__))+'/static',
         'template_path': os.path.dirname(os.path.realpath(__file__))+'/static'
@@ -61,8 +61,8 @@ def server():
         (r'/', MainHandler),
         (r'/ws', WSHandler)
     ]
-    app = tornado.web.Application(urls, **settings)
-    app.listen(80)
+    app = tornado.web.Application(urls, **tornado_settings)
+    app.listen(settings.PORT)
     tornado.ioloop.IOLoop.current().start()
 
 def main():
