@@ -19,6 +19,8 @@ class IncomingWSHandler(tornado.websocket.WebSocketHandler):
         return True
 
     def on_close(self):
+        if self.timer:
+            self.timer.cancel()
         player_queue.remove(self)
         for player in player_queue:
             player.send_position()

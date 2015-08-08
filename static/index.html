@@ -18,7 +18,11 @@
     </div>
 
     <div data-bind="visible: position">
-        <p>You are at position <span data-bind="text:position"></span> in the queue.</p>
+        <p data-bind="visible: position !=1">You are at position <span data-bind="text:position"></span> in the queue.</p>
+        <div data-bind="visible: position == 1">
+            <p>You are LIVE!</p>
+            <p>Time left: <span data-bind="text: parseInt(timer/60)+':'+parseInt(timer%60)"></span></p>
+        </div>
     </div>
 </div>
 <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,14 +35,22 @@
         previousInput: ko.observable(),
         selectedInput: ko.observable(),
         testInput: ko.observable(),
-        position: ko.observable()
+        position: ko.observable(),
+        timer: ko.observable(5*60)
     };
 
+    function countdown() {
+        mainModel.timer(mainModel.timer() - 1);
+        if(mainModel.timer() == 0) ws.close();
+    }
+
     function on_message(msg) {
+        msg = JSON.parse(msg.data);
         if('position' in msg) {
-            mainModel.position(msg['position'])
+            mainModel.position(msg['position']);
+            if(msg['position'] == 1) setInterval(countdown, 1000);
         }
-    };
+    }
 
     $(function() {
         ko.applyBindings(mainModel, document.getElementById('main'));
@@ -72,6 +84,9 @@
         var timestamp = event.timeStamp;
         var time_diff = timestamp - last_note;
         mainModel.testInput([data[0], data[1], data[2]]);
+
+        if(position != 1) return;
+
         var newArray = [];
         newArray[0] = time_diff;
         for(var i = 0; i < data.length; i++) newArray[i+1] = data[i];
