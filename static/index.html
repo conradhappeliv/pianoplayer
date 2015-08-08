@@ -7,6 +7,9 @@
 <body>
 <div id="main">
     <h1>Play my piano.</h1>
+
+    <iframe width="560" height="315" src="//www.youtube.com/embed/nPCdEfZf5ZE" frameborder="0" allowfullscreen></iframe>
+
     <div>
         <label for="inputSelector">Select your MIDI input:</label>
         <select id="inputSelector" data-bind="options: midiInputs, optionsText: 'name', value: selectedInput"></select>
@@ -17,10 +20,14 @@
         <input type="text" id="inputTester" readonly data-bind="value: testInput">
     </div>
 
+    <div data-bind="visible: testInput && !(position)">
+        <button onclick="connect()"></button>
+    </div>
+
     <div data-bind="visible: position">
         <p data-bind="visible: position != 1">You are at position <span data-bind="text:position"></span> in the queue.</p>
         <div data-bind="visible: position == 1">
-            <p>You are LIVE!</p>
+            <p data-bind="visible: timer() > 0">You are LIVE!</p>
             <p>Time left: <span data-bind="text: timerText"></span></p>
         </div>
     </div>
@@ -69,7 +76,9 @@
         }
 
         mainModel.selectedInput.subscribe(setUpInput);
+    });
 
+    function connect() {
         ws = new WebSocket('ws:/'+location.host+':3456'+location.pathname);
         ws.onopen = function() { console.log('opened') };
         ws.onclose = function() {
@@ -77,7 +86,7 @@
             console.log('closed')
         };
         ws.onmessage = on_message;
-    });
+    }
 
 // midi functions
     function setUpInput(newval) {
