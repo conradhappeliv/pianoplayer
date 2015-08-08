@@ -18,10 +18,10 @@
     </div>
 
     <div data-bind="visible: position">
-        <p data-bind="visible: position !=1">You are at position <span data-bind="text:position"></span> in the queue.</p>
+        <p data-bind="visible: position != 1">You are at position <span data-bind="text:position"></span> in the queue.</p>
         <div data-bind="visible: position == 1">
             <p>You are LIVE!</p>
-            <p>Time left: <span data-bind="text: parseInt(timer/60)+':'+parseInt(timer%60)"></span></p>
+            <p>Time left: <span data-bind="text: timerText"></span></p>
         </div>
     </div>
 </div>
@@ -29,6 +29,7 @@
 <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
 <script>
     var ws;
+    var countdownTimer;
     var last_note = (new Date()).getTime();
     var mainModel = {
         midiInputs: ko.observableArray(),
@@ -36,7 +37,13 @@
         selectedInput: ko.observable(),
         testInput: ko.observable(),
         position: ko.observable(),
-        timer: ko.observable(5*60)
+        timer: ko.observable(5*60),
+        timerText: ko.pureComputed(function() {
+            var mins = parseInt(this.timer()/60);
+            var secs = parseInt(this.timer()%60);
+            if(secs.toString().length <= 1) secs = '0'+secs.toString();
+            return mins+':'+secs;
+        })
     };
 
     function countdown() {
@@ -48,7 +55,7 @@
         msg = JSON.parse(msg.data);
         if('position' in msg) {
             mainModel.position(msg['position']);
-            if(msg['position'] == 1) setInterval(countdown, 1000);
+            if(msg['position'] == 1) countdownTimer = setInterval(countdown, 1000);
         }
     }
 
@@ -65,7 +72,10 @@
 
         ws = new WebSocket('ws:/'+location.host+':3456'+location.pathname);
         ws.onopen = function() { console.log('opened') };
-        ws.onclose = function() { console.log('closed') };
+        ws.onclose = function() {
+            if(countdownTimer) clearInterval(countdownTimer);
+            console.log('closed')
+        };
         ws.onmessage = on_message;
     });
 
@@ -85,7 +95,7 @@
         var time_diff = timestamp - last_note;
         mainModel.testInput([data[0], data[1], data[2]]);
 
-        if(position != 1) return;
+        if(mainModel.position() != 1) return;
 
         var newArray = [];
         newArray[0] = time_diff;
