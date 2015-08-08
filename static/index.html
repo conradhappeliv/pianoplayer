@@ -20,13 +20,13 @@
         <input type="text" id="inputTester" readonly data-bind="value: testInput">
     </div>
 
-    <div data-bind="visible: testInput && !(position)">
-        <button onclick="connect()"></button>
+    <div data-bind="visible: testInput() && !(position())">
+        <button onclick="connect()">Get in line!</button>
     </div>
 
-    <div data-bind="visible: position">
-        <p data-bind="visible: position != 1">You are at position <span data-bind="text:position"></span> in the queue.</p>
-        <div data-bind="visible: position == 1">
+    <div data-bind="visible: position()">
+        <p data-bind="visible: position() != 1">You are at position <span data-bind="text:position()"></span> in the queue.</p>
+        <div data-bind="visible: position() == 1">
             <p data-bind="visible: timer() > 0">You are LIVE!</p>
             <p>Time left: <span data-bind="text: timerText"></span></p>
         </div>
@@ -38,20 +38,21 @@
     var ws;
     var countdownTimer;
     var last_note = (new Date()).getTime();
-    var mainModel = {
-        midiInputs: ko.observableArray(),
-        previousInput: ko.observable(),
-        selectedInput: ko.observable(),
-        testInput: ko.observable(),
-        position: ko.observable(),
-        timer: ko.observable(5*60),
-        timerText: ko.pureComputed(function() {
+    var mainModel = (function(){
+        this.midiInputs = ko.observableArray();
+        this.previousInput = ko.observable();
+        this.selectedInput = ko.observable();
+        this.testInput= ko.observable();
+        this.position = ko.observable();
+        this.timer = ko.observable(5*60);
+        this.timerText = ko.computed(function() {
             var mins = parseInt(this.timer()/60);
             var secs = parseInt(this.timer()%60);
             if(secs.toString().length <= 1) secs = '0'+secs.toString();
             return mins+':'+secs;
-        })
-    };
+        }, this);
+	return this;
+    })();
 
     function countdown() {
         mainModel.timer(mainModel.timer() - 1);
@@ -62,7 +63,10 @@
         msg = JSON.parse(msg.data);
         if('position' in msg) {
             mainModel.position(msg['position']);
-            if(msg['position'] == 1) countdownTimer = setInterval(countdown, 1000);
+            if(msg['position'] == 1) {
+                last_note = (new Date()).getTime();
+                countdownTimer = setInterval(countdown, 1000);
+            }
         }
     }
 
