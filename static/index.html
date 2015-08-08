@@ -34,8 +34,7 @@
         position: ko.observable()
     };
 
-    var on_message = function(msg) {
-        msg = JSON.parse(msg);
+    function on_message(msg) {
         if('position' in msg) {
             mainModel.position(msg['position'])
         }
@@ -52,7 +51,7 @@
 
         mainModel.selectedInput.subscribe(setUpInput);
 
-        ws = new WebSocket('ws:/'+location.host+location.pathname+'ws');
+        ws = new WebSocket('ws:/'+location.host+':3456'+location.pathname);
         ws.onopen = function() { console.log('opened') };
         ws.onclose = function() { console.log('closed') };
         ws.onmessage = on_message;

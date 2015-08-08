@@ -2,6 +2,7 @@ import settings
 import tornado.web
 import tornado.websocket
 import tornado.ioloop
+import json
 from tornado import gen
 from threading import Timer
 
@@ -10,8 +11,12 @@ piano_connection = None
 
 class IncomingWSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
+        self.timer = None
         player_queue.append(self)
         self.send_position()
+
+    def check_origin(self, origin):
+        return True
 
     def on_close(self):
         player_queue.remove(self)
@@ -27,7 +32,7 @@ class IncomingWSHandler(tornado.websocket.WebSocketHandler):
             piano_connection.write_message(message)
 
     def send_position(self):
-        self.write_message({"position": player_queue.index(self)+1})
+        self.write_message(json.dumps({"position": player_queue.index(self)+1}))
 
 
 def server():
