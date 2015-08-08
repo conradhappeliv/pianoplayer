@@ -6,30 +6,49 @@
 </head>
 <body>
 <div id="main">
-    <h1>Play my piano.</h1>
+    <h1>Play My Piano!</h1>
 
     <iframe width="560" height="315" src="//www.youtube.com/embed/nPCdEfZf5ZE" frameborder="0" allowfullscreen></iframe>
 
+    <br><br>
+    <h2>Would you like to play the piano?</h2>
+
     <div>
+        <h3>Requirements:</h3>
+        <ul>
+            <li>Latest version of Google Chrome</li>
+            <li>Correct drivers for your MIDI keyboard (check the manufacturer's website)</li>
+        </ul>
+    </div>
+
+    <div>
+        <h3>Step one: </h3>
         <label for="inputSelector">Select your MIDI input:</label>
         <select id="inputSelector" data-bind="options: midiInputs, optionsText: 'name', value: selectedInput"></select>
+        <small>Don't see your keyboard? Make sure you have the correct drivers and refresh the page.</small>
     </div>
 
     <div data-bind="visible: selectedInput">
+        <h3>Step two:</h3>
         <label for="inputTester">Make sure you see input from your MIDI device here when you play it:</label>
         <input type="text" id="inputTester" readonly data-bind="value: testInput">
     </div>
 
     <div data-bind="visible: testInput() && !(position())">
+        <h3>Step three:</h3>
         <button onclick="connect()">Get in line!</button>
     </div>
 
     <div data-bind="visible: position()">
-        <p data-bind="visible: position() != 1">You are at position <span data-bind="text:position()"></span> in the queue.</p>
+        <p data-bind="visible: position() != 1">You are at position <span data-bind="text:position()-1"></span> in the queue.</p>
         <div data-bind="visible: position() == 1">
             <p data-bind="visible: timer() > 0">You are LIVE!</p>
             <p>Time left: <span data-bind="text: timerText"></span></p>
         </div>
+    </div>
+
+    <div style="position: fixed; bottom:10px; right: 15px;">
+        <small>Created by: <a href="http://conradhappeliv.com">Conrad Appel</a></small>
     </div>
 </div>
 <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
