@@ -2,14 +2,8 @@ from enum import IntEnum
 from EdisonPort import EdisonPort
 from DebugPort import DebugPort
 
-### COMMON
-# networking
 PORT = 3456
-
-### CLIENT
-INPUT_PORT = 'KeyLab 49 MIDI 1'
-SERVER_ADDRESS = '192.168.1.136'
-
-### SERVER
+PLAY_TIME = 5*60  # 5 minutes
 PORT_TYPE = DebugPort
+PIANO_ADDRESS = None
 LISTEN_ADDRESS = '0.0.0.0'

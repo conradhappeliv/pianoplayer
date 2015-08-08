@@ -3,24 +3,14 @@ import threading
 import queue
 import time
 import mido
-import os
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
 
 q = queue.Queue()
-connected = []
-
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.render('index.html')
-
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        connected.append(self)
-
-    def close(self, code=None, reason=None):
         pass
 
     def on_message(self, message):
@@ -52,16 +42,10 @@ def player():
         last_played_at = time.time()
 
 def server():
-    tornado_settings = {
-        'debug': True,
-        'static_path': os.path.dirname(os.path.realpath(__file__))+'/static',
-        'template_path': os.path.dirname(os.path.realpath(__file__))+'/static'
-    }
     urls = [
-        (r'/', MainHandler),
         (r'/ws', WSHandler)
     ]
-    app = tornado.web.Application(urls, **tornado_settings)
+    app = tornado.web.Application(urls)
     app.listen(settings.PORT)
     tornado.ioloop.IOLoop.current().start()
 

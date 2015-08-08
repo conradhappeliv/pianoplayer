@@ -16,6 +16,10 @@
         <label for="inputTester">Make sure you see input from your MIDI device here when you play it:</label>
         <input type="text" id="inputTester" readonly data-bind="value: testInput">
     </div>
+
+    <div data-bind="visible: position">
+        <p>You are at position <span data-bind="text:position"></span> in the queue.</p>
+    </div>
 </div>
 <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
@@ -26,7 +30,15 @@
         midiInputs: ko.observableArray(),
         previousInput: ko.observable(),
         selectedInput: ko.observable(),
-        testInput: ko.observable()
+        testInput: ko.observable(),
+        position: ko.observable()
+    };
+
+    var on_message = function(msg) {
+        msg = JSON.parse(msg);
+        if('position' in msg) {
+            mainModel.position(msg['position'])
+        }
     };
 
     $(function() {
@@ -40,9 +52,10 @@
 
         mainModel.selectedInput.subscribe(setUpInput);
 
-        ws = new WebSocket('ws://'+location.host+location.pathname+'ws');
+        ws = new WebSocket('ws:/'+location.host+location.pathname+'ws');
         ws.onopen = function() { console.log('opened') };
         ws.onclose = function() { console.log('closed') };
+        ws.onmessage = on_message;
     });
 
 // midi functions
@@ -59,7 +72,6 @@
         var data = event.data;
         var timestamp = event.timeStamp;
         var time_diff = timestamp - last_note;
-        console.log(last_note, timestamp, time_diff)
         mainModel.testInput([data[0], data[1], data[2]]);
         var newArray = [];
         newArray[0] = time_diff;
