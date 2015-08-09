@@ -27,6 +27,10 @@ def player():
     while True:
         message, timing, recv_time = q.get()  # blocks until something in queue
 
+        if message.type != 'note_on' and message.type != 'note_off': continue
+        if message.type == 'note_on' and message.velocity > 115: message.velocity = 115
+        if message.type == 'note_on' and message.velocity < 15: message.velocity = 15
+
         while time.time() - recv_time < 5: pass # 5 second "buffer" time
 
         diff = last_played_at + timing/1000 - time.time()
