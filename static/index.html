@@ -14,6 +14,12 @@
     <h2>Would you like to play the piano?</h2>
 
     <div>
+        <ul data-bind="foreach: errors">
+            <li data-bind="text: $data"></li>
+        </ul>
+    </div>
+
+    <div>
         <h3>Requirements:</h3>
         <ul>
             <li>Latest version of Google Chrome</li>
@@ -25,7 +31,7 @@
         <h3>Step one: </h3>
         <label for="inputSelector">Select your MIDI input:</label>
         <select id="inputSelector" data-bind="options: midiInputs, optionsText: 'name', value: selectedInput"></select>
-        <small>Don't see your keyboard? Make sure you have the correct drivers and refresh the page.</small>
+        <small>Don't see your keyboard? Make sure you have the correct drivers and are using Google Chrome and refresh the page.</small>
     </div>
 
     <div data-bind="visible: selectedInput">
@@ -58,6 +64,7 @@
     var countdownTimer;
     var last_note = (new Date()).getTime();
     var mainModel = (function(){
+        this.errors = ko.observableArray();
         this.midiInputs = ko.observableArray();
         this.previousInput = ko.observable();
         this.selectedInput = ko.observable();
@@ -95,7 +102,7 @@
         if (navigator.requestMIDIAccess) {
             navigator.requestMIDIAccess({}).then(onMIDISuccess, onMIDIFailure);
         } else {
-            alert("No MIDI support in your browser.");
+            mainModel.errors.push("Your browser doesn't support the WebMIDI API. Please try Google Chrome.");
         }
 
         mainModel.selectedInput.subscribe(setUpInput);
@@ -127,6 +134,7 @@
         var time_diff = timestamp - last_note;
         mainModel.testInput([data[0], data[1], data[2]]);
 
+        if(data[0] != 128 && data[0] != 144) return;
         if(mainModel.position() != 1) return;
 
         var newArray = [];
@@ -147,7 +155,7 @@
     }
 
     function onMIDIFailure(e) {
-        alert("Something went wrong...");
+        mainModel.errors.push("Something unknown went wrong...");
         console.log(e);
 }
 </script>
